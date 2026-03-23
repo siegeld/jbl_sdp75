@@ -1,0 +1,12 @@
+{
+  "domain": "jbl_sdp75",
+  "name": "JBL SDP-75",
+  "documentation": "https://github.com/yourusername/ha-jbl-sdp75",
+  "dependencies": [],
+  "codeowners": [],
+  "requirements": [],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "version": "1.0.0",
+  "integration_type": "device"
+}

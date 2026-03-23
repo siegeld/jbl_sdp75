@@ -1,0 +1,36 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Connect to JBL SDP-75",
+                "description": "Enter the hostname or IP address of your JBL SDP-75.",
+                "data": {
+                    "host": "Host"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "invalid_host": "Invalid IP address format",
+            "unknown": "Unexpected error"
+        },
+        "abort": {
+            "already_configured": "Device is already configured"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "JBL SDP-75 Options",
+                "description": "Select sources to hide from the source list.",
+                "data": {
+                    "hidden_sources": "Hidden sources"
+                }
+            }
+        },
+        "abort": {
+            "no_sources": "No sources available. The device may not be connected."
+        }
+    }
+}
