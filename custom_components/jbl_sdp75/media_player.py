@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from homeassistant.components.media_player import (
@@ -46,6 +47,7 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
         | MediaPlayerEntityFeature.TURN_ON
         | MediaPlayerEntityFeature.TURN_OFF
         | MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.SELECT_SOUND_MODE
     )
 
     def __init__(self, host: str, entry: ConfigEntry) -> None:
@@ -67,6 +69,11 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
         self._reader = None
         self._writer = None
         self._sources = {}  # Map of profile index to name
+        self._sound_mode: str | None = None
+        self._sound_modes: list[str] = [
+            "none", "native", "auto", "dolby", "dts", "auro3d", "legacy",
+            "upmix on native",
+        ]
         self._read_task = None
         self._running = False
 
@@ -134,8 +141,24 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
                 self.async_write_ha_state()
             except (ValueError, IndexError) as ex:
                 _LOGGER.error("Error parsing mute status: %s", ex)
+        elif line.startswith("DECODER "):
+            match = re.match(
+                r"^DECODER NONAUDIO [01] PLAYABLE [01] DECODER .+ UPMIXER (.+)$",
+                line,
+            )
+            if match:
+                upmixer = match.group(1).strip()
+                self._sound_mode = upmixer
+                if upmixer not in self._sound_modes:
+                    self._sound_modes.append(upmixer)
+                self.async_write_ha_state()
+        elif line in self._sound_modes:
+            # Bare upmixer query response (e.g. "auto")
+            self._sound_mode = line
+            self.async_write_ha_state()
         else:
-            _LOGGER.warning("Received line from device: %s", line)
+            if line != "OK":
+                _LOGGER.warning("Received line from device: %s", line)
 
     async def _ensure_connected(self) -> bool:
         """Ensure connection to device is established."""
@@ -178,6 +201,7 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
                             self._read_task = asyncio.create_task(self._read_loop())
                         
                         await self._send_command("get_current_state")
+                        await self._send_command("upmixer")
                         return True
                     else:
                         _LOGGER.error("Unexpected welcome message: %s", welcome_text)
@@ -286,6 +310,13 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
             elif response.startswith("ERROR"):
                 _LOGGER.error("Device returned error: %s", response)
 
+    async def async_select_sound_mode(self, sound_mode: str) -> None:
+        """Select sound mode (upmixer)."""
+        success, response = await self._send_command(f"upmixer {sound_mode}")
+        if success:
+            self._sound_mode = sound_mode
+            self.async_write_ha_state()
+
     async def async_select_source(self, source: str) -> None:
         """Select input source."""
         # Find index for the given source name
@@ -328,6 +359,16 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
     def source(self) -> str | None:
         """Name of the current input source."""
         return self._source
+
+    @property
+    def sound_mode(self) -> str | None:
+        """Name of the current sound mode (upmixer)."""
+        return self._sound_mode
+
+    @property
+    def sound_mode_list(self) -> list[str] | None:
+        """List of available sound modes."""
+        return self._sound_modes
 
     @property
     def available(self) -> bool:
