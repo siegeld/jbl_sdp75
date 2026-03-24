@@ -27,7 +27,6 @@ _LOGGER = logging.getLogger(__name__)
 
 # Protocol command or device-reported name -> display name
 SOUND_MODE_NAMES: dict[str, str] = {
-    "none": "None",
     "native": "Native",
     "auto": "Auto",
     "dolby": "Dolby Surround",
@@ -40,7 +39,6 @@ SOUND_MODE_NAMES: dict[str, str] = {
 }
 # Display name -> protocol command (explicit to avoid reverse-mapping collisions)
 SOUND_MODE_PROTOCOL: dict[str, str] = {
-    "None": "none",
     "Native": "native",
     "Auto": "auto",
     "Dolby Surround": "dolby",
@@ -169,6 +167,8 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
             )
             if match:
                 upmixer = match.group(1).strip()
+                if upmixer == "none":
+                    return  # Transient state during mode switch
                 display = SOUND_MODE_NAMES.get(upmixer, upmixer)
                 self._sound_mode = display
                 if display not in self._sound_modes:
