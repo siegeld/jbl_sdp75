@@ -25,6 +25,20 @@ from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Protocol value -> display name
+SOUND_MODE_NAMES: dict[str, str] = {
+    "none": "None",
+    "native": "Native",
+    "auto": "Auto",
+    "dolby": "Dolby",
+    "dts": "DTS",
+    "auro3d": "Auro-3D",
+    "legacy": "Legacy",
+    "upmix on native": "Upmix on Native",
+}
+# Reverse: display name -> protocol value
+SOUND_MODE_PROTOCOL = {v: k for k, v in SOUND_MODE_NAMES.items()}
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
@@ -70,10 +84,7 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
         self._writer = None
         self._sources = {}  # Map of profile index to name
         self._sound_mode: str | None = None
-        self._sound_modes: list[str] = [
-            "none", "native", "auto", "dolby", "dts", "auro3d", "legacy",
-            "upmix on native",
-        ]
+        self._sound_modes: list[str] = list(SOUND_MODE_NAMES.values())
         self._read_task = None
         self._running = False
 
@@ -112,15 +123,14 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
                     self.async_write_ha_state()
             except (ValueError, IndexError) as ex:
                 _LOGGER.error("Error parsing profile: %s", ex)
-        elif line.startswith("META_PRESET_LOADED "):
+        elif line.startswith("META_PRESET_LOADED ") or line.startswith("CURRENT_PRESET "):
             try:
-                # Format: "META_PRESET_LOADED X"
                 index = int(line.split(" ")[1])
                 if index in self._sources:
                     self._source = self._sources[index]
                     self.async_write_ha_state()
             except (ValueError, IndexError) as ex:
-                _LOGGER.error("Error parsing preset loaded: %s", ex)
+                _LOGGER.error("Error parsing preset: %s", ex)
         elif line.startswith("VOLUME "):
             try:
                 # Extract volume value (e.g., -33.600000)
@@ -148,13 +158,14 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
             )
             if match:
                 upmixer = match.group(1).strip()
-                self._sound_mode = upmixer
-                if upmixer not in self._sound_modes:
-                    self._sound_modes.append(upmixer)
+                display = SOUND_MODE_NAMES.get(upmixer, upmixer)
+                self._sound_mode = display
+                if display not in self._sound_modes:
+                    self._sound_modes.append(display)
                 self.async_write_ha_state()
-        elif line in self._sound_modes:
+        elif line in SOUND_MODE_NAMES:
             # Bare upmixer query response (e.g. "auto")
-            self._sound_mode = line
+            self._sound_mode = SOUND_MODE_NAMES[line]
             self.async_write_ha_state()
         else:
             if line != "OK":
@@ -312,7 +323,8 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
 
     async def async_select_sound_mode(self, sound_mode: str) -> None:
         """Select sound mode (upmixer)."""
-        success, response = await self._send_command(f"upmixer {sound_mode}")
+        protocol_value = SOUND_MODE_PROTOCOL.get(sound_mode, sound_mode)
+        success, response = await self._send_command(f"upmixer {protocol_value}")
         if success:
             self._sound_mode = sound_mode
             self.async_write_ha_state()
