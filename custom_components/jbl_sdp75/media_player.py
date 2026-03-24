@@ -25,19 +25,30 @@ from . import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-# Protocol value -> display name
+# Protocol command or device-reported name -> display name
 SOUND_MODE_NAMES: dict[str, str] = {
     "none": "None",
     "native": "Native",
     "auto": "Auto",
-    "dolby": "Dolby",
-    "dts": "DTS",
+    "dolby": "Dolby Surround",
+    "Dolby Surround": "Dolby Surround",
+    "dts": "Neural:X",
+    "Neural:X": "Neural:X",
     "auro3d": "Auro-3D",
     "legacy": "Legacy",
     "upmix on native": "Upmix on Native",
 }
-# Reverse: display name -> protocol value
-SOUND_MODE_PROTOCOL = {v: k for k, v in SOUND_MODE_NAMES.items()}
+# Display name -> protocol command (explicit to avoid reverse-mapping collisions)
+SOUND_MODE_PROTOCOL: dict[str, str] = {
+    "None": "none",
+    "Native": "native",
+    "Auto": "auto",
+    "Dolby Surround": "dolby",
+    "Neural:X": "dts",
+    "Auro-3D": "auro3d",
+    "Legacy": "legacy",
+    "Upmix on Native": "upmix on native",
+}
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -84,7 +95,7 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
         self._writer = None
         self._sources = {}  # Map of profile index to name
         self._sound_mode: str | None = None
-        self._sound_modes: list[str] = list(SOUND_MODE_NAMES.values())
+        self._sound_modes: list[str] = list(dict.fromkeys(SOUND_MODE_NAMES.values()))
         self._read_task = None
         self._running = False
 
