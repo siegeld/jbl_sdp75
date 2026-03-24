@@ -326,7 +326,8 @@ class JBLSDP75MediaPlayer(MediaPlayerEntity):
         protocol_value = SOUND_MODE_PROTOCOL.get(sound_mode, sound_mode)
         success, response = await self._send_command(f"upmixer {protocol_value}")
         if success:
-            self._sound_mode = sound_mode
+            display = SOUND_MODE_NAMES.get(protocol_value, sound_mode)
+            self._sound_mode = display
             self.async_write_ha_state()
 
     async def async_select_source(self, source: str) -> None:
