@@ -1,12 +1,13 @@
 {
   "domain": "jbl_sdp75",
   "name": "JBL SDP-75",
-  "documentation": "https://github.com/yourusername/ha-jbl-sdp75",
-  "dependencies": [],
-  "codeowners": [],
-  "requirements": [],
+  "codeowners": ["@siegeld"],
   "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/siegeld/jbl_sdp75",
+  "integration_type": "device",
   "iot_class": "local_polling",
-  "version": "1.0.0",
-  "integration_type": "device"
+  "issue_tracker": "https://github.com/siegeld/jbl_sdp75/issues",
+  "requirements": [],
+  "version": "1.0.0"
 }
